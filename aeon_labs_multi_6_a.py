@@ -40,10 +40,25 @@ class Adaptor(CbAdaptor):
         }
         self.intervalChanged = False
         self.pollInterval = MIN_INTERVAL - 1 # Start with a short poll interval when no apps have requested
+        self.lastTemperatureTime =   0
+        self.lastHumidityTime =      0
+        self.lastLuminanceTime =     0
+        self.lastBinaryTime =        0
+        self.lastBatteryTime =       0
+        self.lastUltravioletTime =   0
         # super's __init__ must be called:
         #super(Adaptor, self).__init__(argv)
         CbAdaptor.__init__(self, argv)
  
+    def sendCharacteristic(self, characteristic, data, timeStamp):
+        msg = {"id": self.id,
+               "content": "characteristic",
+               "characteristic": characteristic,
+               "data": data,
+               "timeStamp": timeStamp}
+        for a in self.apps[characteristic]:
+            self.sendMessage(msg, a)
+
     def setState(self, action):
         # error is only ever set from the running state, so set back to running if error is cleared
         if action == "error":
@@ -56,15 +71,6 @@ class Adaptor(CbAdaptor):
                "status": "state",
                "state": self.state}
         self.sendManagerMessage(msg)
-
-    def sendcharacteristic(self, characteristic, data, timeStamp):
-        msg = {"id": self.id,
-               "content": "characteristic",
-               "characteristic": characteristic,
-               "data": data,
-               "timeStamp": timeStamp}
-        for a in self.apps[characteristic]:
-            self.sendMessage(msg, a)
 
     def checkBattery(self):
         cmd = {"id": self.id,
@@ -245,41 +251,60 @@ class Adaptor(CbAdaptor):
             try:
                 if message["commandClass"] == "49":
                     if message["value"] == "1":
-                        temperature = message["data"]["val"]["value"] 
-                        self.cbLog("debug", "onZwaveMessage, temperature: " + str(temperature))
-                        if temperature is not None:
-                            self.sendcharacteristic("temperature", temperature, time.time())
+                        updateTime = message["data"]["val"]["updateTime"] 
+                        # Only send if we don't already have an update from this time and the update is recent (not stale after restart)
+                        if updateTime != self.lastTemperatureTime and time.time() - updateTime < 10:
+                            temperature = message["data"]["val"]["value"] 
+                            if temperature is not None:
+                                self.cbLog("debug", "onZwaveMessage, temperature: " + str(temperature))
+                                self.sendCharacteristic("temperature", temperature, time.time())
+                                self.lastTemperatureTime = updateTime
                     elif message["value"] == "3":
-                        luminance = message["data"]["val"]["value"] 
-                        self.cbLog("debug", "onZwaveMessage, luminance: " + str(luminance))
-                        if luminance is not None:
-                            self.sendcharacteristic("luminance", luminance, time.time())
+                        updateTime = message["data"]["val"]["updateTime"] 
+                        if updateTime != self.lastLuminanceTime and time.time() - updateTime < 10:
+                            luminance = message["data"]["val"]["value"] 
+                            if luminance is not None:
+                                self.cbLog("debug", "onZwaveMessage, luminance: " + str(luminance))
+                                self.sendCharacteristic("luminance", luminance, time.time())
+                                self.lastLuminanceTime = updateTime
                     elif message["value"] == "5":
-                        humidity = message["data"]["val"]["value"] 
-                        self.cbLog("debug", "onZwaveMessage, humidity: " + str(humidity))
-                        if humidity is not None:
-                            self.sendcharacteristic("humidity", humidity, time.time())
+                        updateTime = message["data"]["val"]["updateTime"] 
+                        if updateTime != self.lastHumidityTime and time.time() - updateTime < 10:
+                            humidity = message["data"]["val"]["value"] 
+                            if humidity is not None:
+                                self.cbLog("debug", "onZwaveMessage, humidity: " + str(humidity))
+                                self.sendCharacteristic("humidity", humidity, time.time())
+                                self.lastHumidityTime = updateTime
                     elif message["value"] == "27":
-                        ultraviolet = message["data"]["val"]["value"] 
-                        self.cbLog("debug", "onZwaveMessage, ultraviolet: " + str(ultraviolet))
-                        if ultraviolet is not None:
-                            self.sendcharacteristic("ultraviolet", ultraviolet, time.time())
+                        updateTime = message["data"]["val"]["updateTime"] 
+                        if updateTime != self.lastUltravioletTime and time.time() - updateTime < 10:
+                            ultraviolet = message["data"]["val"]["value"] 
+                            if ultraviolet is not None:
+                                self.cbLog("debug", "onZwaveMessage, ultraviolet: " + str(ultraviolet))
+                                self.sendCharacteristic("ultraviolet", ultraviolet, time.time())
+                                self.lastUltravioletTime = updateTime
                 elif message["commandClass"] == "48":
                     if message["value"] == "1":
-                        if message["data"]["level"]["value"]:
-                            b = "on"
-                        else:
-                            b = "off"
-                        self.cbLog("debug", "onZwaveMessage, alarm: " + b)
-                        self.sendcharacteristic("binary_sensor", b, time.time())
+                        updateTime = message["data"]["level"]["updateTime"]
+                        if updateTime != self.lastBinaryTime and time.time() - updateTime < 10:
+                            if message["data"]["level"]["value"]:
+                                b = "on"
+                            else:
+                                b = "off"
+                            self.cbLog("debug", "onZwaveMessage, alarm: " + b)
+                            self.sendCharacteristic("binary_sensor", b, time.time())
+                            self.lastBinaryTime = updateTime
                 elif message["commandClass"] == "128":
-                     battery = message["data"]["last"]["value"] 
-                     self.cbLog("info", "battery level: " + str(battery))
-                     msg = {"id": self.id,
-                            "status": "battery_level",
-                            "battery_level": battery}
-                     self.sendManagerMessage(msg)
-                     self.sendcharacteristic("battery", battery, time.time())
+                    updateTime = message["data"]["last"]["updateTime"]
+                    if updateTime != self.lastBatteryTime and time.time() - updateTime < 10:
+                        battery = message["data"]["last"]["value"] 
+                        msg = {"id": self.id,
+                               "status": "battery_level",
+                               "battery_level": battery}
+                        self.sendManagerMessage(msg)
+                        self.sendCharacteristic("battery", battery, time.time())
+                        self.lastBatteryTime = updateTime
+                self.updateTime = message["data"]["updateTime"]
             except Exception as ex:
                 self.cbLog("warning", "onZwaveMessage, unexpected message: " + str(message))
                 self.cbLog("warning", "Exception: " + str(type(ex)) + str(ex.args))
