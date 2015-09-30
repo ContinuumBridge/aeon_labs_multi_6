@@ -72,6 +72,20 @@ class Adaptor(CbAdaptor):
                "state": self.state}
         self.sendManagerMessage(msg)
 
+    def forceInterview(self):
+        self.cbLog("debug", "forceInterview")
+        cmd = {"id": self.id,
+               "request": "force_interview",
+               "address": self.addr
+              }
+        self.sendZwaveMessage(cmd)
+
+    def onAction(self, action):
+        if action == "interview":
+            self.forceInterview()
+        else:
+            self.cbLog("warning", "onAction. Unrecognised action: " +  str(action))
+
     def checkBattery(self):
         cmd = {"id": self.id,
                "request": "post",
@@ -85,7 +99,7 @@ class Adaptor(CbAdaptor):
         reactor.callLater(BATTERY_CHECK_INTERVAL, self.checkBattery)
 
     def pollSensors(self):
-        self.cbLog("debug", "pollSensors")
+        #self.cbLog("debug", "pollSensors")
         if self.intervalChanged:
             self.intervalChanged = False
             # Set wakeup time
