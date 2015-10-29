@@ -7,7 +7,7 @@
 #
 BATTERY_CHECK_INTERVAL   = 21600    # How often to check battery (secs) - 6 hours
 MAX_INTERVAL             = 3600
-MIN_INTERVAL             = 1800     # 
+MIN_INTERVAL             = 600      # How often to wake up
 CHECK_INTERVAL           = 7200     # If not update during this time, assume we've lost connection
 TIME_CUTOFF              = 1800     # Data older than this is considered "stale"
 POLL_INTERVAL            = 1800     # How often sensor should wake up      
