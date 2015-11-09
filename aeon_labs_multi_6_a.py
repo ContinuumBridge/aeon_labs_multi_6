@@ -10,7 +10,6 @@ MAX_INTERVAL             = 3600
 MIN_INTERVAL             = 600      # How often to wake up
 CHECK_INTERVAL           = 7200     # If not update during this time, assume we've lost connection
 TIME_CUTOFF              = 1800     # Data older than this is considered "stale"
-POLL_INTERVAL            = 1800     # How often sensor should wake up      
 
 import sys
 import time
@@ -256,16 +255,6 @@ class Adaptor(CbAdaptor):
                    "commandClass": "112",
                    "action": "Set",
                    "value": "101,227,4"
-                  }
-            self.sendZwaveMessage(cmd)
-            # Wakeup interval
-            cmd = {"id": self.id,
-                   "request": "post",
-                   "address": self.addr,
-                   "instance": "0",
-                   "commandClass": "132",
-                   "action": "Set",
-                   "value": str(POLL_INTERVAL) + ",1"
                   }
             self.sendZwaveMessage(cmd)
             # Send a message on wakeup
