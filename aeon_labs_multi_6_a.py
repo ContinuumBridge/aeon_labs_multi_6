@@ -7,7 +7,7 @@
 #
 BATTERY_CHECK_INTERVAL   = 21600    # How often to check battery (secs) - 6 hours
 MAX_INTERVAL             = 3600
-MIN_INTERVAL             = 600      # How often to wake up
+MIN_INTERVAL             = 300      # How often to wake up
 CHECK_INTERVAL           = 7200     # If not update during this time, assume we've lost connection
 TIME_CUTOFF              = 1800     # Data older than this is considered "stale"
 
@@ -111,6 +111,34 @@ class Adaptor(CbAdaptor):
               }
         self.sendZwaveMessage(cmd)
         reactor.callLater(BATTERY_CHECK_INTERVAL, self.checkBattery)
+
+    def pollSensors(self):
+        self.cbLog("debug", "pollSensors. intervalChanged: " + str(self.intervalChanged))
+        if self.intervalChanged:
+            self.intervalChanged = False
+            # Set wakeup time
+            cmd = {"id": self.id,
+                   "request": "post",
+                   "address": self.addr,
+                   "instance": "0",
+                   "commandClass": "132",
+                   "action": "Set",
+                   "value": str(self.pollInterval) + ",1"
+                  }
+            self.sendZwaveMessage(cmd)
+            self.cbLog("debug", "pollSensors, sending: " + str(json.dumps(cmd, indent=4)))
+        """
+        cmd = {"id": self.id,
+               "request": "post",
+               "address": self.addr,
+               "instance": "0",
+               "commandClass": "49",
+               "action": "Get",
+               "value": ""
+              }
+        self.sendZwaveMessage(cmd)
+        """
+        reactor.callLater(self.pollInterval, self.pollSensors)
 
     def onZwaveMessage(self, message):
         #self.cbLog("debug", "onZwaveMessage, message: " + str(message))
@@ -267,6 +295,7 @@ class Adaptor(CbAdaptor):
                   }
             self.sendZwaveMessage(cmd)
             reactor.callLater(300, self.checkBattery)
+            reactor.callLater(10, self.pollSensors)
             reactor.callLater(CHECK_INTERVAL, self.checkConnected)
         elif message["content"] == "data":
             try:
