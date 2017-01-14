@@ -7,7 +7,7 @@
 #
 BATTERY_CHECK_INTERVAL   = 21600    # How often to check battery (secs) - 6 hours
 MAX_INTERVAL             = 3600
-MIN_INTERVAL             = 300      # How often to wake up
+MIN_INTERVAL             = 600      # How often to wake up
 CHECK_INTERVAL           = 7200     # If not update during this time, assume we've lost connection
 TIME_CUTOFF              = 1800     # Data older than this is considered "stale"
 
@@ -242,7 +242,7 @@ class Adaptor(CbAdaptor):
                    "instance": "0",
                    "commandClass": "112",
                    "action": "Set",
-                   "value": "3,10,2"
+                   "value": "3,60,2"
                   }
             self.sendZwaveMessage(cmd)
             # Automatically report parameters when they change
@@ -272,7 +272,7 @@ class Adaptor(CbAdaptor):
                    "instance": "0",
                    "commandClass": "112",
                    "action": "Set",
-                   "value": "42,1,1"
+                   "value": "42,2,1"
                   }
             self.sendZwaveMessage(cmd)
             # Report to association group 1
