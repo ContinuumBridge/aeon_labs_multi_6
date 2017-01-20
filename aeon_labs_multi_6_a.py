@@ -141,7 +141,7 @@ class Adaptor(CbAdaptor):
         reactor.callLater(self.pollInterval, self.pollSensors)
 
     def onZwaveMessage(self, message):
-        #self.cbLog("debug", "onZwaveMessage, message: " + str(message))
+        self.cbLog("debug", "onZwaveMessage, message: " + str(message))
         if message["content"] == "init":
             cmd = {"id": self.id,
                    "request": "get",
